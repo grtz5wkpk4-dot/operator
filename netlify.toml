@@ -1,0 +1,11 @@
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/operator"
+  to = "/.netlify/functions/operator"
+  status = 200
+  force = true

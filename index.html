@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>The Operator · The Schizo Hub</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;700&display=swap');
+
+  :root{
+    --bg:#08090A; --panel:#0D110E; --line:#1A241D;
+    --green:#00FF85; --greenDim:#19A865; --text:#E7ECE8; --dim:#5C6A60; --white:#F5F8F6; --red:#FF5C5C;
+    --display:'Fraunces',Georgia,serif; --mono:'JetBrains Mono',monospace; --body:'Manrope',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{background:var(--bg);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased;}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;
+    background:radial-gradient(ellipse 90% 75% at 50% 42%, transparent 40%, rgba(0,0,0,.45) 88%, rgba(0,0,0,.7) 100%);}
+  #app{min-height:100dvh;display:flex;flex-direction:column;align-items:center;position:relative;z-index:1;}
+  #fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;display:block;}
+  .soundbtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:5px;font-family:var(--mono);font-size:11px;padding:4px 8px;}
+  ::placeholder{color:var(--dim);}
+  textarea:focus,input:focus{border-color:var(--greenDim)!important;outline:none;}
+  ::-webkit-scrollbar{width:8px;} ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  button{font-family:var(--mono);cursor:pointer;}
+
+  @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 8px var(--green)}50%{opacity:.35;box-shadow:0 0 2px var(--green)}}
+  @keyframes blink{0%,100%{opacity:.15}50%{opacity:1}}
+  @keyframes lineIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @keyframes scanmove{from{transform:translateY(-100%)}to{transform:translateY(100dvh)}}
+  @keyframes flickerIn{0%{opacity:0}10%{opacity:.4}15%{opacity:.1}30%{opacity:.8}40%{opacity:.3}100%{opacity:1}}
+  @keyframes glitch{
+    0%,100%{text-shadow:1.5px 0 var(--green),-1.5px 0 #ff2e63;transform:translate(0,0)}
+    20%{text-shadow:-2px 0 var(--green),2px 0 #ff2e63;transform:translate(1px,-1px)}
+    40%{text-shadow:1px 0 var(--green),-1px 0 #ff2e63;transform:translate(-1px,0)}
+    60%{text-shadow:2px 0 var(--green),-2px 0 #ff2e63;transform:translate(0,1px)}
+    80%{text-shadow:-1px 0 var(--green),1px 0 #ff2e63;transform:translate(1px,0)}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;}}
+
+  .wrap{width:100%;max-width:560px;padding:0 26px;}
+  .scanlines{position:absolute;inset:0;pointer-events:none;z-index:2;
+    background-image:repeating-linear-gradient(0deg,rgba(0,255,133,.05) 0,rgba(0,255,133,.05) 1px,transparent 1px,transparent 3px);}
+  .sweep{position:absolute;left:0;right:0;height:64px;background:linear-gradient(var(--green),transparent);opacity:.06;z-index:1;}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--greenDim);text-transform:uppercase;}
+  .title{font-family:var(--display);font-weight:600;font-size:52px;line-height:1.02;margin:14px 0 6px;color:var(--white);letter-spacing:-.02em;}
+  .tag{font-family:var(--mono);font-size:13px;color:var(--green);margin:0 0 28px;}
+  .lead{font-size:15px;line-height:1.6;color:var(--dim);margin:0 0 36px;max-width:460px;}
+  label.f{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--greenDim);margin-bottom:8px;}
+  .field{margin-bottom:22px;}
+  .inp{width:100%;background:#060706;border:1px solid var(--line);border-radius:6px;color:var(--white);font-family:var(--body);font-size:15px;padding:12px 14px;resize:none;}
+  .cta{width:100%;margin-top:4px;padding:15px;border-radius:6px;border:none;font-size:14px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;background:var(--green);color:#04130B;box-shadow:0 0 24px rgba(0,255,133,.25);transition:all .2s;}
+  .cta:disabled{background:#13201a;color:var(--dim);box-shadow:none;cursor:not-allowed;}
+  .footline{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:16px;text-align:center;}
+
+  .term{font-family:var(--mono);font-size:14px;line-height:2.1;color:var(--green);position:relative;z-index:3;}
+  .term .dim{opacity:.6;}
+  .bigname{font-family:var(--display);font-weight:600;font-size:50px;letter-spacing:-.02em;color:var(--white);position:relative;z-index:3;margin-top:28px;animation:glitch 1.6s infinite,flickerIn .6s ease;}
+  .enter{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:14px;animation:blink 1.4s infinite;position:relative;z-index:3;}
+
+  .center{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--green);}
+
+  .console{width:100%;max-width:720px;display:flex;flex-direction:column;height:100dvh;}
+  .head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);flex-shrink:0;}
+  .hname{font-family:var(--display);font-weight:600;font-size:19px;color:var(--white);}
+  .clock{font-family:var(--mono);font-size:13px;color:var(--greenDim);}
+  .scroll{flex:1;overflow-y:auto;padding:24px 20px;}
+  .op{margin:0 0 26px;max-width:600px;}
+  .op .who{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--greenDim);text-transform:uppercase;margin-bottom:8px;}
+  .op .msg{font-family:var(--mono);font-size:14.5px;line-height:1.65;color:var(--text);white-space:pre-wrap;border-left:2px solid var(--green);padding-left:16px;animation:flickerIn .5s ease;}
+  .me{margin:0 0 26px;display:flex;justify-content:flex-end;}
+  .me .bub{max-width:520px;font-size:15.5px;line-height:1.55;color:var(--white);background:#10140F;border:1px solid var(--line);border-radius:10px;padding:12px 16px;}
+  .think{font-family:var(--mono);font-size:14px;color:var(--greenDim);padding-left:18px;display:flex;gap:2px;}
+  .bar{padding:14px 20px 22px;border-top:1px solid var(--line);flex-shrink:0;}
+  .modebar{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;}
+  .modebar::-webkit-scrollbar{display:none;}
+  .pill{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:7px 13px;border-radius:20px;border:1px solid var(--line);background:transparent;color:var(--dim);white-space:nowrap;transition:all .15s;}
+  .pill.on{background:var(--green);color:#04130B;border-color:var(--green);font-weight:500;}
+  .barrow{display:flex;gap:10px;align-items:flex-end;}
+  .send{padding:12px 20px;border-radius:6px;border:none;font-size:13px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;background:var(--green);color:#04130B;white-space:nowrap;}
+  .send:disabled{background:#13201a;color:var(--dim);cursor:not-allowed;}
+  .errblock{margin-top:26px;animation:flickerIn .4s ease;}
+  .errtext{font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--red);white-space:pre-wrap;margin-bottom:18px;}
+  .btnrow{display:flex;gap:10px;}
+  .btnghost{padding:11px 22px;border-radius:6px;border:1px solid var(--line);font-size:13px;letter-spacing:.08em;text-transform:uppercase;background:transparent;color:var(--dim);}
+  .btngreen{padding:11px 22px;border-radius:6px;border:none;font-size:13px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;background:var(--green);color:#04130B;}
+  .subj{font-family:var(--mono);font-size:13px;color:var(--dim);margin-top:22px;animation:flickerIn .8s ease;position:relative;z-index:3;}
+  .subj b{color:var(--white);font-weight:400;}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div id="app"></div>
+
+<script>
+// ── THE OPERATOR · client ──────────────────────────────────────────────
+// Talks to /api/operator. No key here. No doctrine here. Both live on the server.
+
+const BOOT = [
+  "> 4:44am // the hub never sleeps",
+  "> authenticating subject...",
+  "> loading doctrine // schizo elite \u00b7 0ffline archives",
+  "> programming the subconscious...",
+  "> it already knows why you're here",
+  "> the operator is awake.",
+];
+const INIT = [
+  "> reading the subject",
+  "> measuring the gap between you and the delusion you swore you'd become",
+  "> cross-referencing the doctrine",
+  "> activating creeper mode...",
+  "> the door locked behind you.",
+];
+const THINK = ["reading the subject", "cutting the cope", "finding the schizo move"];
+
+const MODES = [
+  { key: "reckoning",      label: "Reckoning",       ph: "Report. Or tell it the cope you're about to use." },
+  { key: "firstprinciples",label: "First Principles", ph: "Describe what you're doing. It tears it to the studs and rebuilds it." },
+  { key: "theplay",        label: "The Play",         ph: "Give it the exact situation. It hands you the move." },
+  { key: "reprogram",      label: "Reprogram",        ph: "Tell it who you're becoming. It forges the identity." },
+];
+
+let state = {
+  stage: "boot",
+  bootStep: 0,
+  code: "",
+  profile: { state: "", identity: "", target: "", tether: "" },
+  messages: [],
+  loading: false,
+  error: "",
+  mode: "reckoning",
+};
+let timers = [];
+const app = document.getElementById("app");
+const clearTimers = () => { timers.forEach(clearInterval); timers.forEach(clearTimeout); timers = []; };
+const esc = (s) => (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+async function callOperator(messages, _attempt) {
+  const attempt = _attempt || 0;
+  let r;
+  try {
+    r = await fetch("/api/operator", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: state.code, action: "chat", profile: state.profile, mode: state.mode, messages }),
+    });
+  } catch (e) {
+    if (attempt < 1) { await new Promise((res) => setTimeout(res, 700)); return callOperator(messages, attempt + 1); }
+    throw new Error("network: " + (e && e.message ? e.message : "request blocked"));
+  }
+  let data = null;
+  try { data = await r.json(); } catch (_) {}
+  if (r.status >= 500 && attempt < 1) {
+    await new Promise((res) => setTimeout(res, 900));
+    return callOperator(messages, attempt + 1);
+  }
+  if (!r.ok || !data) throw new Error((data && data.error) || ("HTTP " + r.status));
+  if (data.error) throw new Error(data.error);
+  if (!data.text) throw new Error("empty response");
+  return data.text;
+}
+
+// ── member identity + saved session ──
+const REMEMBER_KEY = "schizo_operator_code";
+function rememberCode(code) { try { localStorage.setItem(REMEMBER_KEY, code); } catch (e) {} }
+function getRemembered() { try { return localStorage.getItem(REMEMBER_KEY) || ""; } catch (e) { return ""; } }
+
+async function loadSession(code) {
+  const r = await fetch("/api/operator", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ code: code, action: "load" }),
+  });
+  let data = null;
+  try { data = await r.json(); } catch (_) {}
+  if (!r.ok || !data) throw new Error((data && data.error) || ("HTTP " + r.status));
+  if (data.error) throw new Error(data.error);
+  return data; // { profile, messages }
+}
+
+async function enterApp() {
+  const saved = getRemembered();
+  if (saved) {
+    state.code = saved;
+    try { applySession(await loadSession(saved)); return; }
+    catch (e) { state.code = ""; }
+  }
+  state.stage = "gate";
+  render();
+}
+
+function applySession(sess) {
+  const p = sess && sess.profile;
+  if (sess && sess.messages && sess.messages.length) {
+    state.profile = p || state.profile;
+    state.messages = sess.messages;
+    state.stage = "console";
+    render();
+  } else if (p && p.state && p.identity && p.target) {
+    state.profile = p;
+    state.messages = [];
+    begin(); // known member, fresh session — regenerate the opener
+  } else {
+    state.stage = "onboard";
+    render();
+  }
+}
+
+// ── BOOT ──
+function renderBoot() {
+  clearTimers();
+  app.innerHTML =
+    '<div class="wrap center" id="bootScreen">' +
+      '<div class="scanlines"></div>' +
+      '<div class="sweep" id="sweep"></div>' +
+      '<div class="term" id="bootTerm"></div>' +
+      '<div id="bootEnd"></div>' +
+    '</div>';
+  document.getElementById("sweep").style.animation = "scanmove 4s linear infinite";
+  paintBoot();
+  document.getElementById("bootScreen").onclick = () => {
+    if (state.bootStep >= BOOT.length) { ensureAudio(); startLaughter(); state.stage = "onboard"; render(); }
+  };
+  step();
+  function step() {
+    if (state.bootStep < BOOT.length) {
+      timers.push(setTimeout(() => { state.bootStep++; paintBoot(); step(); }, state.bootStep === 0 ? 450 : 560));
+    }
+  }
+}
+function paintBoot() {
+  const term = document.getElementById("bootTerm");
+  if (!term) return;
+  term.innerHTML = BOOT.slice(0, state.bootStep).map((l, i) =>
+    '<div style="animation:lineIn .25s ease both" class="' + (i === BOOT.length - 1 ? "" : "dim") + '">' + esc(l) + '</div>'
+  ).join("");
+  const end = document.getElementById("bootEnd");
+  if (state.bootStep >= BOOT.length) {
+    end.innerHTML = '<div class="bigname">THE OPERATOR</div><div class="enter">tap to enter</div>';
+    document.getElementById("bootScreen").style.cursor = "pointer";
+  }
+}
+
+// ── GATE ──
+function renderGate() {
+  clearTimers();
+  app.innerHTML =
+    '<div class="wrap" style="padding:90px 24px 80px;max-width:440px">' +
+      '<div class="eyebrow">The Schizo Hub</div>' +
+      '<h1 class="title" style="font-size:44px">Access</h1>' +
+      '<p class="tag">// members only</p>' +
+      '<div class="field" style="margin-top:8px"><label class="f">Your access code</label>' +
+      '<input class="inp" id="codeinp" placeholder="the code from inside the hub" value="' + esc(getRemembered()) + '" autocomplete="off" spellcheck="false" /></div>' +
+      (state.error ? '<div class="errtext">' + esc(state.error) + '</div>' : "") +
+      '<button class="cta" id="entergate">Enter</button>' +
+      '<p class="footline">stay schizo</p>' +
+    '</div>';
+  const inp = document.getElementById("codeinp");
+  const btn = document.getElementById("entergate");
+  const submit = async () => {
+    const code = inp.value.trim();
+    if (!code) return;
+    state.error = "";
+    btn.disabled = true; btn.textContent = "checking...";
+    try {
+      state.code = code;
+      const sess = await loadSession(code);
+      rememberCode(code);
+      applySession(sess);
+    } catch (e) {
+      state.error = e && e.message ? e.message : String(e);
+      state.code = "";
+      renderGate();
+    }
+  };
+  btn.onclick = submit;
+  inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } });
+  inp.focus();
+}
+
+// ── ONBOARD ──
+function renderOnboard() {
+  clearTimers();
+  const f = (key, label, ph) =>
+    '<div class="field"><label class="f">' + label + '</label>' +
+    '<textarea class="inp" rows="2" data-key="' + key + '" placeholder="' + ph + '">' + esc(state.profile[key]) + '</textarea></div>';
+  app.innerHTML =
+    '<div class="wrap" style="padding:56px 24px 80px;max-width:540px">' +
+      '<div class="eyebrow">The Schizo Hub</div>' +
+      '<h1 class="title">The Operator</h1>' +
+      '<p class="tag">// the one still awake at 4:44</p>' +
+      f("state", "Where you are now", "Broke, scattered, normal. Watching everyone else win. Be honest.") +
+      f("identity", "Who you're becoming", "The delusional version. The one who doesn't negotiate at 4:44am.") +
+      f("target", "Your 5\u201310 year vision", "Where the obsession ends up \u2014 the man, the bag, the life.") +
+      f("tether", "What's keeping you normal", "The comfort, the cope, the people keeping you average.") +
+      (state.error ? '<div class="errtext">' + esc(state.error) + '</div>' : "") +
+      '<button class="cta" id="go" disabled>Initialize the Operator</button>' +
+      '<p class="footline">stay schizo</p>' +
+    '</div>';
+  const ta = app.querySelectorAll("textarea[data-key]");
+  const go = document.getElementById("go");
+  const refresh = () => {
+    const ok = state.profile.state.trim() && state.profile.identity.trim() && state.profile.target.trim();
+    go.disabled = !ok;
+  };
+  ta.forEach((t) => t.addEventListener("input", (e) => { state.profile[e.target.dataset.key] = e.target.value; refresh(); }));
+  refresh();
+  go.onclick = begin;
+}
+
+// ── INIT ──
+function renderInit() {
+  clearTimers();
+  app.innerHTML =
+    '<div class="wrap center">' +
+      '<div class="scanlines"></div>' +
+      '<div class="sweep" id="sweep"></div>' +
+      '<div style="position:relative;z-index:3">' +
+        '<div class="dot" id="initdot" style="animation:pulse 1.4s infinite;margin-bottom:26px"></div>' +
+        '<div class="term" id="initTerm" style="font-size:14px;line-height:2.2"></div>' +
+        '<div id="initExtra"></div>' +
+      '</div>' +
+    '</div>';
+  document.getElementById("sweep").style.animation = "scanmove 2.6s linear infinite";
+  let i = 0;
+  const paint = () => {
+    const term = document.getElementById("initTerm");
+    if (!term) return;
+    term.innerHTML = INIT.slice(0, i).map((l, idx) =>
+      '<div style="animation:lineIn .3s ease both" class="' + (idx === i - 1 ? "" : "dim") + '">' + esc(l) + '</div>'
+    ).join("");
+    const extra = document.getElementById("initExtra");
+    if (!state.error && state.profile.identity && i >= 1) {
+      extra.innerHTML = '<div class="subj">subject \u2192 <b>' + esc(state.profile.identity) + '</b></div>';
+    }
+  };
+  i = 1; paint();
+  timers.push(setInterval(() => { i = Math.min(i + 1, INIT.length); paint(); }, 620));
+}
+function paintInitError() {
+  const dot = document.getElementById("initdot");
+  if (dot) dot.style.display = "none";
+  const extra = document.getElementById("initExtra");
+  if (!extra) return;
+  extra.innerHTML =
+    '<div class="errblock">' +
+      '<div class="errtext">' + esc("> connection failed\n> " + state.error) + '</div>' +
+      '<div class="btnrow">' +
+        '<button class="btngreen" id="retry">Retry</button>' +
+        '<button class="btnghost" id="back">Back</button>' +
+      '</div>' +
+    '</div>';
+  document.getElementById("retry").onclick = begin;
+  document.getElementById("back").onclick = () => { state.error = ""; state.stage = "onboard"; render(); };
+}
+
+async function begin() {
+  const ok = state.profile.state.trim() && state.profile.identity.trim() && state.profile.target.trim();
+  if (!ok) return;
+  ensureAudio(); startLaughter();
+  state.error = "";
+  state.stage = "init";
+  render();
+  const minDelay = new Promise((r) => setTimeout(r, 900));
+  try {
+    const [reply] = await Promise.all([
+      callOperator([{ role: "user", content: "[BEGIN FIRST SESSION]" }]),
+      minDelay,
+    ]);
+    state.messages = [{ role: "assistant", content: reply }];
+    state.stage = "console";
+    render();
+  } catch (e) {
+    state.error = e && e.message ? e.message : String(e);
+    paintInitError();
+  }
+}
+
+// ── CONSOLE ──
+function renderConsole() {
+  clearTimers();
+  app.innerHTML =
+    '<div class="console">' +
+      '<div class="head">' +
+        '<span class="dot" style="animation:pulse 2.4s infinite"></span>' +
+        '<div class="hname">The Operator</div>' +
+        '<div style="flex:1"></div>' +
+        '<div class="clock" id="clock"></div>' +
+        '<button class="soundbtn" id="soundbtn">sound on</button>' +
+      '</div>' +
+      '<div class="scroll" id="scroll"></div>' +
+      '<div class="bar">' +
+        '<div class="modebar" id="modebar"></div>' +
+        '<div class="barrow">' +
+          '<textarea class="inp" id="inp" rows="1" placeholder="" style="flex:1;min-height:24px"></textarea>' +
+          '<button class="send" id="send" disabled>Send</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  const clock = document.getElementById("clock");
+  const tick = () => {
+    const d = new Date();
+    clock.textContent = [d.getHours(), d.getMinutes(), d.getSeconds()].map((n) => String(n).padStart(2, "0")).join(":");
+  };
+  tick(); timers.push(setInterval(tick, 1000));
+
+  const sb = document.getElementById("soundbtn");
+  if (sb) { sb.textContent = soundMuted ? "sound off" : "sound on"; sb.onclick = toggleSound; }
+
+  paintTranscript();
+  const inp = document.getElementById("inp");
+  const send = document.getElementById("send");
+
+  function paintModes() {
+    const bar = document.getElementById("modebar");
+    bar.innerHTML = MODES.map((m) =>
+      '<button class="pill' + (m.key === state.mode ? " on" : "") + '" data-mode="' + m.key + '">' + m.label + '</button>'
+    ).join("");
+    bar.querySelectorAll(".pill").forEach((b) => b.onclick = () => {
+      state.mode = b.dataset.mode;
+      const cur = MODES.find((x) => x.key === state.mode);
+      inp.placeholder = cur ? cur.ph : "";
+      paintModes();
+      inp.focus();
+    });
+  }
+  paintModes();
+  const cur0 = MODES.find((x) => x.key === state.mode);
+  inp.placeholder = cur0 ? cur0.ph : "";
+
+  inp.addEventListener("input", () => { send.disabled = state.loading || !inp.value.trim(); });
+  inp.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); } });
+  send.onclick = doSend;
+}
+
+function paintTranscript() {
+  const scroll = document.getElementById("scroll");
+  if (!scroll) return;
+  let html = state.messages.filter((m) => m.content !== "[BEGIN FIRST SESSION]").map((m) =>
+    m.role === "assistant"
+      ? '<div class="op"><div class="who">Operator</div><div class="msg">' + esc(m.content) + '</div></div>'
+      : '<div class="me"><div class="bub">' + esc(m.content) + '</div></div>'
+  ).join("");
+  if (state.loading) {
+    html += '<div class="think"><span id="thinkw" style="animation:glitch 2s infinite"></span>' +
+      '<span style="animation:blink 1.2s infinite .1s">.</span><span style="animation:blink 1.2s infinite .3s">.</span><span style="animation:blink 1.2s infinite .5s">.</span></div>';
+  }
+  if (state.error) html += '<div class="errtext" style="margin-top:8px">' + esc(state.error) + '</div>';
+  scroll.innerHTML = html;
+  scroll.scrollTop = scroll.scrollHeight;
+  if (state.loading) startThinkCycle();
+}
+
+let thinkTimer = null;
+function startThinkCycle() {
+  let t = 0;
+  const w = document.getElementById("thinkw");
+  if (w) w.textContent = "> " + THINK[0];
+  clearInterval(thinkTimer);
+  thinkTimer = setInterval(() => {
+    t = (t + 1) % THINK.length;
+    const el = document.getElementById("thinkw");
+    if (el) el.textContent = "> " + THINK[t];
+  }, 1500);
+}
+
+async function doSend() {
+  const inp = document.getElementById("inp");
+  const text = inp.value.trim();
+  if (!text || state.loading) return;
+  state.messages.push({ role: "user", content: text });
+  inp.value = "";
+  state.loading = true;
+  state.error = "";
+  paintTranscript();
+  document.getElementById("send").disabled = true;
+  try {
+    const reply = await callOperator(state.messages);
+    state.messages.push({ role: "assistant", content: reply });
+  } catch (e) {
+    state.error = e && e.message ? e.message : String(e);
+  } finally {
+    state.loading = false;
+    clearInterval(thinkTimer);
+    paintTranscript();
+  }
+}
+
+// ── atmosphere: ember particles + maniacal-laugh audio ──
+// Drop a real laugh/ambience clip URL here for the true vibe; else a synth cackle is used.
+const LAUGH_URL = "";
+let actx = null, soundMuted = false, laughTimer = null, laughStarted = false;
+
+function ensureAudio() {
+  try {
+    if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) actx = new AC(); }
+    if (actx && actx.state === "suspended") actx.resume();
+  } catch (e) {}
+}
+function playSynthLaugh() {
+  if (!actx) return;
+  const master = actx.createGain(); master.gain.value = 0.32; master.connect(actx.destination);
+  const bp = actx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 850; bp.Q.value = 5; bp.connect(master);
+  const delay = actx.createDelay(1.0); delay.delayTime.value = 0.19;
+  const fb = actx.createGain(); fb.gain.value = 0.3;
+  bp.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(master);
+  const n = 6 + Math.floor(Math.random() * 5);
+  let t = actx.currentTime + 0.03;
+  const base = 165 + Math.random() * 95;
+  for (let i = 0; i < n; i++) {
+    const o = actx.createOscillator(); o.type = Math.random() < 0.5 ? "sawtooth" : "square";
+    const fHz = base * (1 - i * 0.045) + (Math.random() * 16 - 8);
+    o.frequency.setValueAtTime(fHz, t);
+    o.frequency.linearRampToValueAtTime(fHz * 0.8, t + 0.11);
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.6, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + 0.14);
+    o.connect(g); g.connect(bp);
+    o.start(t); o.stop(t + 0.18);
+    t += 0.1 + Math.random() * 0.05;
+  }
+  master.gain.setValueAtTime(0.32, t);
+  master.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+}
+function playLaugh() {
+  if (soundMuted) return;
+  if (LAUGH_URL) { try { const a = new Audio(LAUGH_URL); a.volume = 0.5; a.play().catch(() => {}); } catch (e) {} return; }
+  ensureAudio(); playSynthLaugh();
+}
+function startLaughter() {
+  if (laughStarted) return; laughStarted = true;
+  const loop = () => { playLaugh(); laughTimer = setTimeout(loop, 12000 + Math.random() * 12000); };
+  laughTimer = setTimeout(loop, 7000 + Math.random() * 4000);
+}
+function toggleSound() {
+  soundMuted = !soundMuted;
+  if (!soundMuted) ensureAudio();
+  const b = document.getElementById("soundbtn");
+  if (b) b.textContent = soundMuted ? "sound off" : "sound on";
+}
+
+function initFX() {
+  const c = document.getElementById("fx");
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let W, H, parts = [], fog = [];
+  function resize() { W = c.width = innerWidth * dpr; H = c.height = innerHeight * dpr; }
+  resize(); addEventListener("resize", resize);
+  if (reduce) return;
+  const N = Math.min(80, Math.floor(innerWidth / 12));
+  const mk = () => ({
+    x: Math.random() * W, y: Math.random() * H,
+    r: (Math.random() * 1.8 + 0.5) * dpr,
+    vy: -(Math.random() * 0.32 + 0.08) * dpr,
+    tw: Math.random() * Math.PI * 2, sp: Math.random() * 0.02 + 0.004,
+    a: Math.random() * 0.45 + 0.12,
+  });
+  for (let i = 0; i < N; i++) parts.push(mk());
+  for (let i = 0; i < 3; i++) fog.push({ x: Math.random() * W, y: Math.random() * H, r: (200 + Math.random() * 180) * dpr, vx: (Math.random() - 0.5) * 0.15 * dpr, vy: (Math.random() - 0.5) * 0.1 * dpr });
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+    for (const fb of fog) {
+      fb.x += fb.vx; fb.y += fb.vy;
+      if (fb.x < -fb.r) fb.x = W + fb.r; if (fb.x > W + fb.r) fb.x = -fb.r;
+      if (fb.y < -fb.r) fb.y = H + fb.r; if (fb.y > H + fb.r) fb.y = -fb.r;
+      const grd = ctx.createRadialGradient(fb.x, fb.y, 0, fb.x, fb.y, fb.r);
+      grd.addColorStop(0, "rgba(0,255,133,0.045)");
+      grd.addColorStop(1, "rgba(0,255,133,0)");
+      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(fb.x, fb.y, fb.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.shadowColor = "rgba(0,255,133,0.85)";
+    for (const p of parts) {
+      p.y += p.vy; p.tw += p.sp; p.x += Math.sin(p.tw) * 0.3 * dpr;
+      if (p.y < -12) { p.y = H + 12; p.x = Math.random() * W; }
+      const flick = 0.55 + Math.sin(p.tw * 2) * 0.45;
+      ctx.beginPath();
+      ctx.shadowBlur = 7 * dpr;
+      ctx.fillStyle = "rgba(0,255,133," + (p.a * flick).toFixed(3) + ")";
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+// ── render switch ──
+function render() {
+  if (state.stage === "boot") renderBoot();
+  else if (state.stage === "gate") renderGate();
+  else if (state.stage === "onboard") renderOnboard();
+  else if (state.stage === "init") renderInit();
+  else if (state.stage === "console") renderConsole();
+}
+initFX();
+render();
+</script>
+</body>
+</html>
