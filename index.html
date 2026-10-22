@@ -82,6 +82,40 @@
   .barrow{display:flex;gap:10px;align-items:flex-end;}
   .send{padding:12px 20px;border-radius:6px;border:none;font-size:13px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;background:var(--green);color:#04130B;white-space:nowrap;}
   .send:disabled{background:#13201a;color:var(--dim);cursor:not-allowed;}
+  .attach{width:42px;height:42px;flex-shrink:0;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--greenDim);font-size:20px;line-height:1;padding:0;transition:all .15s;}
+  .attach:hover{border-color:var(--greenDim);color:var(--green);}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--greenDim);background:#0E1410;border:1px solid var(--line);border-radius:14px;padding:5px 8px 5px 11px;max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .chip .x{background:none;border:none;color:var(--dim);font-size:14px;line-height:1;padding:0 2px;}
+  .chip .x:hover{color:var(--red);}
+  .filenote{font-family:var(--mono);font-size:11px;color:var(--greenDim);margin-bottom:6px;}
+  .stat{font-family:var(--mono);font-size:12px;color:var(--greenDim);letter-spacing:.06em;}
+  .ledgerrow{display:flex;align-items:center;gap:10px;padding-bottom:12px;}
+  .logbtn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;border-radius:20px;border:1px dashed var(--greenDim);background:transparent;color:var(--greenDim);}
+  .logbtn:hover{background:rgba(0,255,133,.08);color:var(--green);}
+  .ledgernote{font-family:var(--mono);font-size:11px;color:var(--dim);}
+  .rankbadge{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:#04130B;background:var(--green);padding:4px 9px;border-radius:4px;text-transform:uppercase;font-weight:500;}
+  .lbOverlay{position:fixed;inset:0;background:rgba(2,4,3,.82);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);}
+  .lbcard{width:100%;max-width:480px;max-height:80vh;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,255,133,.08);}
+  .lbhead{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--greenDim);margin-bottom:14px;}
+  .lbclose{background:none;border:none;color:var(--dim);font-size:20px;line-height:1;padding:0 4px;}
+  .lbclose:hover{color:var(--white);}
+  .lbcols{display:grid;grid-template-columns:26px 1fr 90px 50px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);padding:0 4px 8px;border-bottom:1px solid var(--line);}
+  .lblist{overflow-y:auto;}
+  .lbrow{display:grid;grid-template-columns:26px 1fr 90px 50px;align-items:center;padding:9px 4px;font-family:var(--mono);font-size:13px;color:var(--text);border-bottom:1px solid rgba(26,36,29,.5);}
+  .lbrow.mine{background:rgba(0,255,133,.06);border-radius:5px;color:var(--white);}
+  .lbpos{color:var(--dim);}
+  .lbrank{color:var(--greenDim);font-size:11px;}
+  .lbscore{color:var(--green);text-align:right;}
+  .lbempty{font-family:var(--mono);font-size:12px;color:var(--dim);padding:20px 4px;text-align:center;}
+  .notice{list-style:none;padding:0;margin:6px 0 22px;}
+  .notice li{font-size:14px;line-height:1.55;color:var(--text);padding:10px 0 10px 18px;border-bottom:1px solid var(--line);position:relative;}
+  .notice li::before{content:">";position:absolute;left:0;color:var(--greenDim);font-family:var(--mono);}
+  .agree{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:13px;color:var(--white);margin:0 0 18px;cursor:pointer;}
+  .agree input{width:18px;height:18px;accent-color:#00FF85;}
+  .deletebtn{margin-left:auto;background:none;border:none;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);padding:4px 0;}
+  .deletebtn:hover{color:var(--red);}
+  .lbmeNote{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:12px;text-align:center;}
   .errblock{margin-top:26px;animation:flickerIn .4s ease;}
   .errtext{font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--red);white-space:pre-wrap;margin-bottom:18px;}
   .btnrow{display:flex;gap:10px;}
@@ -129,6 +163,13 @@ let state = {
   code: "",
   profile: { state: "", identity: "", target: "", tether: "" },
   messages: [],
+  attachments: [],
+  ledger: [],
+  day: 1,
+  streak: 0,
+  score: 0,
+  rank: "NGMI",
+  alias: "",
   loading: false,
   error: "",
   mode: "reckoning",
@@ -168,23 +209,27 @@ const REMEMBER_KEY = "schizo_operator_code";
 function rememberCode(code) { try { localStorage.setItem(REMEMBER_KEY, code); } catch (e) {} }
 function getRemembered() { try { return localStorage.getItem(REMEMBER_KEY) || ""; } catch (e) { return ""; } }
 
-async function loadSession(code) {
+async function api(payload) {
   const r = await fetch("/api/operator", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ code: code, action: "load" }),
+    body: JSON.stringify(Object.assign({ code: state.code }, payload)),
   });
-  let data = null;
-  try { data = await r.json(); } catch (_) {}
-  if (!r.ok || !data) throw new Error((data && data.error) || ("HTTP " + r.status));
-  if (data.error) throw new Error(data.error);
-  return data; // { profile, messages }
+  let d = null;
+  try { d = await r.json(); } catch (_) {}
+  if (!r.ok || !d) throw new Error((d && d.error) || ("HTTP " + r.status));
+  if (d.error) throw new Error(d.error);
+  return d;
+}
+
+async function loadSession(code) {
+  state.code = code;
+  return await api({ action: "load" });
 }
 
 async function enterApp() {
   const saved = getRemembered();
   if (saved) {
-    state.code = saved;
     try { applySession(await loadSession(saved)); return; }
     catch (e) { state.code = ""; }
   }
@@ -193,16 +238,24 @@ async function enterApp() {
 }
 
 function applySession(sess) {
-  const p = sess && sess.profile;
-  if (sess && sess.messages && sess.messages.length) {
-    state.profile = p || state.profile;
+  if (!sess.consentAt) { state.pending = sess; state.stage = "consent"; render(); return; }
+  state.ledger = sess.ledger || [];
+  state.day = sess.day || 1;
+  state.streak = sess.streak || 0;
+  state.score = sess.score || 0;
+  state.rank = sess.rank || "NGMI";
+  state.alias = sess.alias || "";
+  const p = sess.profile;
+  if (sess.messages && sess.messages.length) {
+    if (p) state.profile = p;
     state.messages = sess.messages;
     state.stage = "console";
     render();
+    doDirective(); // he's back. it speaks first.
   } else if (p && p.state && p.identity && p.target) {
     state.profile = p;
     state.messages = [];
-    begin(); // known member, fresh session — regenerate the opener
+    begin(); // known member, fresh session: regenerate the opener
   } else {
     state.stage = "onboard";
     render();
@@ -222,7 +275,7 @@ function renderBoot() {
   document.getElementById("sweep").style.animation = "scanmove 4s linear infinite";
   paintBoot();
   document.getElementById("bootScreen").onclick = () => {
-    if (state.bootStep >= BOOT.length) { ensureAudio(); startLaughter(); state.stage = "onboard"; render(); }
+    if (state.bootStep >= BOOT.length) { ensureAudio(); startLaughter(); enterApp(); }
   };
   step();
   function step() {
@@ -242,6 +295,47 @@ function paintBoot() {
     end.innerHTML = '<div class="bigname">THE OPERATOR</div><div class="enter">tap to enter</div>';
     document.getElementById("bootScreen").style.cursor = "pointer";
   }
+}
+
+// ── CONSENT: the notice every member reads once ──
+function renderConsent() {
+  clearTimers();
+  const pts = [
+    "the operator remembers you. your day-one answers, logged reps, chat history & callsign are stored on the hub's servers so it can pick up where you left off.",
+    "your messages are sent to an AI service (anthropic) to write every reply.",
+    "other members only ever see your callsign, rank & score. never your access code. never your chats.",
+    "the hub's owner can technically access what's stored. don't put anything in here you wouldn't want stored.",
+    "photos & files you attach are read in the moment, then not kept.",
+    "you can erase all of it, permanently, any time with \"delete my data\".",
+    "it's a coach. not a therapist, not a doctor."
+  ];
+  app.innerHTML =
+    '<div class="wrap" style="padding:64px 24px 80px;max-width:520px">' +
+      '<div class="eyebrow">The Schizo Hub</div>' +
+      '<h1 class="title" style="font-size:40px">Before you enter</h1>' +
+      '<p class="tag">// read this once</p>' +
+      '<ul class="notice">' + pts.map((t) => '<li>' + esc(t) + '</li>').join("") + '</ul>' +
+      '<label class="agree"><input type="checkbox" id="agree" /><span>i\'ve read this. i\'m in.</span></label>' +
+      (state.error ? '<div class="errtext">' + esc(state.error) + '</div>' : "") +
+      '<button class="cta" id="accept" disabled>Continue</button>' +
+    '</div>';
+  const box = document.getElementById("agree");
+  const btn = document.getElementById("accept");
+  box.onchange = () => { btn.disabled = !box.checked; };
+  btn.onclick = async () => {
+    btn.disabled = true; btn.textContent = "saving...";
+    state.error = "";
+    try {
+      await api({ action: "consent" });
+      const sess = state.pending || {};
+      sess.consentAt = Date.now();
+      state.pending = null;
+      applySession(sess);
+    } catch (e) {
+      state.error = e && e.message ? e.message : String(e);
+      renderConsent();
+    }
+  };
 }
 
 // ── GATE ──
@@ -388,27 +482,40 @@ function renderConsole() {
         '<span class="dot" style="animation:pulse 2.4s infinite"></span>' +
         '<div class="hname">The Operator</div>' +
         '<div style="flex:1"></div>' +
-        '<div class="clock" id="clock"></div>' +
+        '<div class="stat" id="stat"></div>' +
+        '<div class="rankbadge" id="rankbadge"></div>' +
+        '<button class="soundbtn" id="lbbtn" title="see where you stand">rank</button>' +
+        '<button class="soundbtn" id="revealbtn" title="who you were vs who you are">reveal</button>' +
         '<button class="soundbtn" id="soundbtn">sound on</button>' +
       '</div>' +
       '<div class="scroll" id="scroll"></div>' +
       '<div class="bar">' +
         '<div class="modebar" id="modebar"></div>' +
+        '<div class="ledgerrow"><button class="logbtn" id="logbtn">+ log a rep</button><span class="ledgernote" id="ledgernote"></span><button class="deletebtn" id="delbtn">delete my data</button></div>' +
         '<div class="barrow">' +
+          '<button class="attach" id="attach" title="attach a screenshot or doc">+</button>' +
           '<textarea class="inp" id="inp" rows="1" placeholder="" style="flex:1;min-height:24px"></textarea>' +
           '<button class="send" id="send" disabled>Send</button>' +
         '</div>' +
+        '<input type="file" id="filepick" accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,.txt,.md" multiple style="display:none" />' +
+        '<div class="chips" id="chips"></div>' +
       '</div>' +
     '</div>';
-  const clock = document.getElementById("clock");
-  const tick = () => {
-    const d = new Date();
-    clock.textContent = [d.getHours(), d.getMinutes(), d.getSeconds()].map((n) => String(n).padStart(2, "0")).join(":");
-  };
-  tick(); timers.push(setInterval(tick, 1000));
+  // (the header clock was removed to make room for day / streak / rank; nothing to tick)
 
   const sb = document.getElementById("soundbtn");
   if (sb) { sb.textContent = soundMuted ? "sound off" : "sound on"; sb.onclick = toggleSound; }
+
+  paintStats();
+  const rv = document.getElementById("revealbtn");
+  if (rv) rv.onclick = doReveal;
+  const lg = document.getElementById("logbtn");
+  if (lg) lg.onclick = doLog;
+  const lb = document.getElementById("lbbtn");
+  if (lb) lb.onclick = openLeaderboard;
+  const dl = document.getElementById("delbtn");
+  if (dl) dl.onclick = doDelete;
+  if (!state.alias) promptAlias();
 
   paintTranscript();
   const inp = document.getElementById("inp");
@@ -431,9 +538,73 @@ function renderConsole() {
   const cur0 = MODES.find((x) => x.key === state.mode);
   inp.placeholder = cur0 ? cur0.ph : "";
 
-  inp.addEventListener("input", () => { send.disabled = state.loading || !inp.value.trim(); });
+  inp.addEventListener("input", () => { send.disabled = state.loading || (!inp.value.trim() && state.attachments.length === 0); });
   inp.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); } });
   send.onclick = doSend;
+
+  // ── attachments: screenshots + docs ──
+  const attach = document.getElementById("attach");
+  const picker = document.getElementById("filepick");
+  attach.onclick = () => picker.click();
+  picker.onchange = async () => {
+    const files = Array.from(picker.files || []);
+    for (const f of files) {
+      if (state.attachments.length >= 4) break;
+      if (f.size > 4.5 * 1024 * 1024) { state.error = "\"" + f.name + "\" is too big. keep it under 4.5mb."; paintTranscript(); continue; }
+      try { state.attachments.push(await readFile(f)); }
+      catch (e) { state.error = "couldn't read \"" + f.name + "\"."; paintTranscript(); }
+    }
+    picker.value = "";
+    paintChips();
+    send.disabled = state.loading || (!inp.value.trim() && state.attachments.length === 0);
+  };
+  paintChips();
+}
+
+function readFile(file) {
+  return new Promise((resolve, reject) => {
+    const isImg = /^image\/(png|jpeg|gif|webp)$/.test(file.type);
+    const isPdf = file.type === "application/pdf";
+    const r = new FileReader();
+    r.onerror = () => reject(new Error("read failed"));
+    if (isImg || isPdf) {
+      r.onload = () => resolve({
+        kind: isImg ? "image" : "pdf",
+        name: file.name,
+        media_type: file.type,
+        data: String(r.result).split(",")[1],
+      });
+      r.readAsDataURL(file);
+    } else {
+      r.onload = () => resolve({ kind: "text", name: file.name, text: String(r.result).slice(0, 60000) });
+      r.readAsText(file);
+    }
+  });
+}
+
+function paintChips() {
+  const wrap = document.getElementById("chips");
+  if (!wrap) return;
+  wrap.innerHTML = state.attachments.map((a, i) =>
+    '<span class="chip">' + (a.kind === "image" ? "\u25A3 " : "\u25A4 ") + esc(a.name) +
+    '<button class="x" data-i="' + i + '">\u00d7</button></span>'
+  ).join("");
+  wrap.querySelectorAll(".x").forEach((b) => b.onclick = () => {
+    state.attachments.splice(parseInt(b.dataset.i, 10), 1);
+    paintChips();
+    const inp = document.getElementById("inp"), send = document.getElementById("send");
+    if (inp && send) send.disabled = state.loading || (!inp.value.trim() && state.attachments.length === 0);
+  });
+}
+
+function renderUserContent(c) {
+  if (typeof c === "string") return esc(c);
+  const files = c.filter((b) => b.type !== "text").length;
+  const txt = c.filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+  let out = "";
+  if (files) out += '<div class="filenote">\u25A3 ' + files + (files === 1 ? " file attached" : " files attached") + '</div>';
+  if (txt) out += esc(txt);
+  return out || '<div class="filenote">\u25A3 attached</div>';
 }
 
 function paintTranscript() {
@@ -442,7 +613,7 @@ function paintTranscript() {
   let html = state.messages.filter((m) => m.content !== "[BEGIN FIRST SESSION]").map((m) =>
     m.role === "assistant"
       ? '<div class="op"><div class="who">Operator</div><div class="msg">' + esc(m.content) + '</div></div>'
-      : '<div class="me"><div class="bub">' + esc(m.content) + '</div></div>'
+      : '<div class="me"><div class="bub">' + renderUserContent(m.content) + '</div></div>'
   ).join("");
   if (state.loading) {
     html += '<div class="think"><span id="thinkw" style="animation:glitch 2s infinite"></span>' +
@@ -470,8 +641,28 @@ function startThinkCycle() {
 async function doSend() {
   const inp = document.getElementById("inp");
   const text = inp.value.trim();
-  if (!text || state.loading) return;
-  state.messages.push({ role: "user", content: text });
+  if ((!text && state.attachments.length === 0) || state.loading) return;
+
+  let content;
+  if (state.attachments.length === 0) {
+    content = text;
+  } else {
+    content = [];
+    for (const a of state.attachments) {
+      if (a.kind === "image") {
+        content.push({ type: "image", source: { type: "base64", media_type: a.media_type, data: a.data } });
+      } else if (a.kind === "pdf") {
+        content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: a.data } });
+      } else {
+        content.push({ type: "text", text: "[file: " + a.name + "]\n" + a.text });
+      }
+    }
+    content.push({ type: "text", text: text || "strip this down. what actually matters here." });
+  }
+
+  state.messages.push({ role: "user", content: content });
+  state.attachments = [];
+  paintChips();
   inp.value = "";
   state.loading = true;
   state.error = "";
@@ -487,6 +678,127 @@ async function doSend() {
     clearInterval(thinkTimer);
     paintTranscript();
   }
+}
+
+// ── the proof loop: ledger, streak, reveal, directive ──
+function paintStats() {
+  const st = document.getElementById("stat");
+  if (st) st.textContent = "day " + state.day + " \u00b7 " + state.streak + "\u0394";
+  const note = document.getElementById("ledgernote");
+  if (note) {
+    note.textContent = state.ledger.length
+      ? state.ledger.length + " rep" + (state.ledger.length === 1 ? "" : "s") + " on record"
+      : "no receipts yet";
+  }
+  const rb = document.getElementById("rankbadge");
+  if (rb) rb.textContent = state.rank;
+}
+
+async function doLog() {
+  const what = prompt("what did you actually do today? one line. no stories.");
+  if (!what || !what.trim()) return;
+  try {
+    const d = await api({ action: "log", text: what.trim(), profile: state.profile });
+    state.ledger = d.ledger || state.ledger;
+    state.streak = d.streak || 0;
+    state.day = d.day || state.day;
+    state.score = d.score || state.score;
+    state.rank = d.rank || state.rank;
+    paintStats();
+    state.messages.push({ role: "assistant", content: "logged. \"" + what.trim() + "\"\n\nday " + state.day + ". streak " + state.streak + ". it's written down now. you can't lie to me about it later." });
+    paintTranscript();
+  } catch (e) {
+    state.error = e.message || String(e);
+    paintTranscript();
+  }
+}
+
+async function doReveal() {
+  if (state.loading) return;
+  state.loading = true; state.error = "";
+  paintTranscript();
+  try {
+    const d = await api({ action: "reveal" });
+    state.messages.push({ role: "assistant", content: d.text });
+  } catch (e) {
+    state.error = e.message || String(e);
+  } finally {
+    state.loading = false;
+    clearInterval(thinkTimer);
+    paintTranscript();
+  }
+}
+
+async function doDirective() {
+  if (state.loading) return;
+  state.loading = true; state.error = "";
+  paintTranscript();
+  try {
+    const d = await api({ action: "directive", profile: state.profile });
+    state.messages.push({ role: "assistant", content: d.text });
+  } catch (e) {
+    state.error = e.message || String(e);
+  } finally {
+    state.loading = false;
+    clearInterval(thinkTimer);
+    paintTranscript();
+  }
+}
+
+// ── erase everything. permanent. ──
+async function doDelete() {
+  const typed = prompt("this permanently erases your day-one answers, ledger, chat history & callsign from the hub. it can't be undone.\n\ntype DELETE to confirm.");
+  if (!typed || typed.trim().toUpperCase() !== "DELETE") return;
+  try {
+    await api({ action: "deleteMe" });
+    try { localStorage.removeItem(REMEMBER_KEY); } catch (e) {}
+    alert("done. everything's erased.");
+    location.reload();
+  } catch (e) {
+    state.error = e && e.message ? e.message : String(e);
+    paintTranscript();
+  }
+}
+
+// ── callsign + leaderboard ──
+function promptAlias() {
+  const name = prompt("pick a callsign. this is the only name anyone else in the hub ever sees you by \u2014 never your real code.");
+  if (!name || !name.trim()) return;
+  api({ action: "setAlias", alias: name.trim() })
+    .then((d) => { state.alias = d.alias || name.trim(); })
+    .catch((e) => { state.error = e.message || String(e); paintTranscript(); });
+}
+
+async function openLeaderboard() {
+  let data;
+  try { data = await api({ action: "leaderboard" }); }
+  catch (e) { state.error = e.message || String(e); paintTranscript(); return; }
+
+  const overlay = document.createElement("div");
+  overlay.className = "lbOverlay";
+  const rowsHtml = (data.rows || []).map((r, i) =>
+    '<div class="lbrow' + (r.mine ? " mine" : "") + '">' +
+      '<span class="lbpos">' + (i + 1) + '</span>' +
+      '<span class="lbalias">' + esc(r.alias) + (r.mine ? " (you)" : "") + '</span>' +
+      '<span class="lbrank">' + esc(r.rank) + '</span>' +
+      '<span class="lbscore">' + r.score + '</span>' +
+    '</div>'
+  ).join("") || '<div class="lbempty">no one\'s on the board yet. be the first receipt.</div>';
+
+  const meLine = (!data.me && data.total)
+    ? '<div class="lbmeNote">you\'re unranked \u2014 log a rep to appear.</div>'
+    : (data.me ? '<div class="lbmeNote">your position: #' + data.position + ' of ' + data.total + '</div>' : "");
+
+  overlay.innerHTML =
+    '<div class="lbcard">' +
+      '<div class="lbhead"><span>the ledger \u2014 ranked</span><button class="lbclose" id="lbclose">\u00d7</button></div>' +
+      '<div class="lbcols"><span></span><span>callsign</span><span>rank</span><span>score</span></div>' +
+      '<div class="lblist">' + rowsHtml + '</div>' +
+      meLine +
+    '</div>';
+  document.body.appendChild(overlay);
+  document.getElementById("lbclose").onclick = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
 
 // ── atmosphere: ember particles + maniacal-laugh audio ──
@@ -594,6 +906,7 @@ function initFX() {
 function render() {
   if (state.stage === "boot") renderBoot();
   else if (state.stage === "gate") renderGate();
+  else if (state.stage === "consent") renderConsent();
   else if (state.stage === "onboard") renderOnboard();
   else if (state.stage === "init") renderInit();
   else if (state.stage === "console") renderConsole();
